@@ -29,6 +29,7 @@ class TestGen:
         self.test_group = -1
         self.test_in_group = 0
         self.group_list = []
+        self.test_list = []
 
     def End(self):
         print("Summary:")
@@ -71,7 +72,11 @@ class TestGen:
                 subprocess.run([self.solution.absolute()], stdin = finp, stdout = fout)\
                     .check_returncode()
 
+    def StoreTest(self):
+        self.test_list.append((self.test_group, self.test_in_group))
+
     def GenerateTest(self, args):
+        self.StoreTest()
         args = [str(arg) for arg in args]
         input = self.GetInputFile()
         print(f"Generating test {input}")
@@ -83,6 +88,7 @@ class TestGen:
         self.IncreaseTest()
 
     def GenerateRawTest(self, rawFile):
+        self.StoreTest()
         input = self.GetInputFile()
         print(f"Raw test {input}")
         output = self.GetOutputFile()
@@ -104,5 +110,13 @@ class TestGen:
             for l in lines:
                 print(f"{l[0]}-{l[1]} {l[2]}{' ' if l[3] else ''}{l[3]}", file=f)
 
+    def GenerateTestDescription(self, output:Path):
+        with output.open('w') as f:
+            cnt = 0
+            print(f"{'Nr':8}\t{'Grupa':5} {'Gr Nr':5} {'GPunkti':8}", file = f)
+            for test in self.test_list:
+                cnt += 1
+                grp = self.group_list[test[0]]
+                print(f"{cnt:8}\t{test[0]:5} {test[1]:5} {grp[0]:8}\t{grp[1]}", file = f)
 
 
