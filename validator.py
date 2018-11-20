@@ -20,7 +20,7 @@ def extract_test_files(zip_archive: Path, folder: Path, dos2unix):
 
 
 def compile_validator(validator :Path):
-    subprocess.run(["g++", "-Wall", "-std=c++11", "-o", "validator", validator.absolute()])\
+    subprocess.run(["g++", "-Wall", "-std=c++17", "-o", "validator", validator.absolute()])\
         .check_returncode()
     print("Validator compiled")
 
@@ -34,7 +34,7 @@ def parse_points(point_file: Path):
     points_per_group = dict()
     points_per_group[0] = 0
     for line in content:
-        vars = line.replace("-", " ").split(" ")
+        vars = line.replace("-", " ").split()
         a = int(vars[0])
         b = int(vars[1])
         points = int(vars[2])
@@ -160,6 +160,19 @@ def main(opts):
     print(f"\tUnused groups {unused_groups}")
     print(f"\tExpeced points {opts.points_per_subtask}")
     print(f"\tGot points     {subtask_points}")
+    print(f"\n");
+
+    # Some beutiful table
+    print(f"{'Ap.uzd.':7} " + ''.join([str(x % 10) for x in range(len(all_groups))]))
+    for subtask, groups in subtask_assignment:
+        output = ""
+        gr_list = [' '] * len(all_groups)
+        for group in subtask_groups[subtask]:
+            gr_list[group] = '░'
+        for group in groups:
+            gr_list[group] = '▓'
+        print(f"{subtask:7} " + ''.join(gr_list))
+
     if must_fail:
         print(must_fail)
         exit(1)
