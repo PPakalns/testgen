@@ -6,24 +6,15 @@ import re
 import shutil
 import zipfile
 import sys
+import argparse
 from pathlib import Path
 
-DOS2UNIX       = True
-APPEND_NEWLINE = False
-VALIDATOR      = Path("validator.cpp")
-TEST_FOLDER    = Path("testi")
-ZIP            = Path("../testi.zip")
-POINT_FILE     = Path("../punkti.txt")
-
-POINTS_PER_SUBTASK = [0, 2, 5, 12, 81]
-
-
-def extract_test_files(zip_archive: Path, folder: Path):
+def extract_test_files(zip_archive: Path, folder: Path, dos2unix):
     if folder.exists():
-        shutil.rmtree(TEST_FOLDER)
+        shutil.rmtree(str(folder.absolute()))
     with zipfile.ZipFile(zip_archive.absolute()) as zip:
         zip.extractall(folder.absolute())
-    if DOS2UNIX:
+    if dos2unix:
         for f in folder.iterdir():
             subprocess.run(["dos2unix", f]).check_returncode()
 
@@ -36,24 +27,17 @@ def compile_validator(validator :Path):
 
 def parse_points(point_file: Path):
     # Parse following file
-    #    01.  1 x 2p. =  2p.
-    # 02-09.  8 x 2p. = 16p.
-    # 10-19. 10 x 3p. = 30p.
-    # 20-32. 13 x 4p. = 52p.
+    # 0-9 5 komentars
+    # 10 - 15 5 komentars
     with point_file.open() as f:
         content = [x.strip() for x in f.readlines()]
     points_per_group = dict()
     points_per_group[0] = 0
     for line in content:
-        line_prefix = line[:line.index('.')]
-        if line_prefix.find("-") == -1:
-            a = b = 1
-        else:
-            a, b = [int(x) for x in line_prefix.split('-')]
-        line_sub = line[line.index('.') + 1:line.index('=')].split('x')
-        line_sub = list(map(str.strip, line_sub))
-        points = line_sub[0] if 'p' in line_sub[0] else line_sub[1]
-        points = int(points[:points.index('p')])
+        vars = line.replace("-", " ").split(" ")
+        a = int(vars[0])
+        b = int(vars[1])
+        points = int(vars[2])
         for group in range(a, b+1):
             points_per_group[group] = points
     return points_per_group
@@ -85,14 +69,14 @@ def validate_test(test_file :Path, subtask):
     subprocess.run(" ".join(args), shell=True).check_returncode()
 
 
-def get_subtask_assignment(subtask_groups, group_points):
+def get_subtask_assignment(subtask_groups, group_points, points_per_subtask):
     assigned_groups = set()
     subtask_assignment = []
     must_fail = None
 
     for subtask in range(len(subtask_groups)):
         groups = set()
-        points_required = POINTS_PER_SUBTASK[subtask]
+        points_required = points_per_subtask[subtask]
 
         for group in subtask_groups[subtask]:
             # Matching done
@@ -115,12 +99,12 @@ def get_subtask_assignment(subtask_groups, group_points):
     return subtask_assignment, must_fail
 
 
-def main():
-    compile_validator(VALIDATOR)
-    extract_test_files(ZIP, TEST_FOLDER)
-    group_points = parse_points(POINT_FILE)
-    tests = get_input_files(TEST_FOLDER)
-    subtask_count = len(POINTS_PER_SUBTASK)
+def main(opts):
+    compile_validator(Path(opts.validator))
+    extract_test_files(Path(opts.zip), Path(opts.test_dir), opts.dos2unix)
+    group_points = parse_points(Path(opts.point_file))
+    tests = get_input_files(Path(opts.test_dir))
+    subtask_count = len(opts.points_per_subtask)
 
     # For each subtask find groups that matches the description
     subtask_groups = [set() for _ in range(subtask_count)]
@@ -130,7 +114,7 @@ def main():
         all_groups.add(group)
         passed_one = False
 
-        subtask_range = range(2, len(POINTS_PER_SUBTASK)) if group > 1 else\
+        subtask_range = range(2, len(opts.points_per_subtask)) if group > 1 else\
                             [0] if group == 0 else [1]
 
         for subtask in subtask_range:
@@ -154,7 +138,7 @@ def main():
 
     # Checking if groups can be assigned to subtasks to acquire
     # requested points for each subtask
-    subtask_assignment, must_fail = get_subtask_assignment(subtask_groups, group_points)
+    subtask_assignment, must_fail = get_subtask_assignment(subtask_groups, group_points, opts.points_per_subtask)
     total_points = 0
     subtask_points = [0] * subtask_count
     unused_groups = all_groups.copy()
@@ -174,15 +158,24 @@ def main():
 
     print("")
     print(f"\tUnused groups {unused_groups}")
-    print(f"\tExpeced points {POINTS_PER_SUBTASK}")
+    print(f"\tExpeced points {opts.points_per_subtask}")
     print(f"\tGot points     {subtask_points}")
     if must_fail:
         print(must_fail)
         exit(1)
     assert(not unused_groups)
-    assert(subtask_points == POINTS_PER_SUBTASK)
+    assert(subtask_points == opts.points_per_subtask)
     assert(total_points == 100)
     print("GREAT SUCCESS")
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dos2unix", action="store_true")
+    parser.add_argument("--test_dir", default="testi")
+    parser.add_argument("zip")
+    parser.add_argument("validator")
+    parser.add_argument("point_file")
+    parser.add_argument('-g','--group', type=int, dest="points_per_subtask", action='append', help='Pievienot apakšuzdevumu ar punktiem', required=True)
+    opts = parser.parse_args()
+    main(opts)
+
