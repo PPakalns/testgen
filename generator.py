@@ -1,4 +1,5 @@
 import os
+import sys
 import shutil
 import tempfile
 import subprocess
@@ -6,7 +7,7 @@ from pathlib import Path
 
 def compile(source:Path, output:Path):
     print(f"Compiling {source} to {output}")
-    subprocess.run(["g++", "-Wall", "-std=c++14", "-o", output.absolute(), source.absolute()])\
+    subprocess.run(["g++", "-Wall", "-std=c++14", "-g", "-o", output.absolute(), source.absolute()])\
         .check_returncode()
 
 class TestGen:
@@ -69,7 +70,8 @@ class TestGen:
         print(f"Generating answer {output}")
         with input.open('r') as finp:
             with output.open('w') as fout:
-                subprocess.run([self.solution.absolute()], stdin = finp, stdout = fout)\
+                subprocess.run([self.solution.absolute()], stdin = finp, stdout = fout,
+                               stderr = sys.stdout.buffer) \
                     .check_returncode()
 
     def StoreTest(self):
@@ -79,7 +81,7 @@ class TestGen:
         self.StoreTest()
         args = [str(arg) for arg in args]
         input = self.GetInputFile()
-        print(f"Generating test {input}")
+        print(f"Generating test {input} , args: {args}")
         output = self.GetOutputFile()
         with input.open('w') as finp:
             subprocess.run([str(self.generator)] + args, stdout = finp)\
@@ -94,6 +96,14 @@ class TestGen:
         output = self.GetOutputFile()
         input.write_text(rawFile)
         self.GenerateAnswer(input, output)
+        self.IncreaseTest()
+
+    def CopyRawTest(self, path):
+        self.StoreTest()
+        path = Path(path)
+        input = self.GetInputFile()
+        input.write_bytes(path.read_bytes())
+        self.GenerateAnswer(input, self.GetOutputFile())
         self.IncreaseTest()
 
     def GeneratePointFile(self, pointFilePath:Path):
