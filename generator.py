@@ -3,6 +3,7 @@ import sys
 import shutil
 import tempfile
 import subprocess
+import zipfile
 from pathlib import Path
 
 def compile(source:Path, output:Path):
@@ -12,13 +13,13 @@ def compile(source:Path, output:Path):
 
 class TestGen:
 
-    def __init__(self, filename, generator, solution, outputDir):
+    def __init__(self, filename, generator, solution, output_dir):
         self.filename = filename
 
-        self.outputDir = outputDir
-        if os.path.exists(self.outputDir):
-            shutil.rmtree(self.outputDir)
-        os.mkdir(self.outputDir)
+        self.output_dir = output_dir
+        if os.path.exists(self.output_dir):
+            shutil.rmtree(self.output_dir)
+        os.mkdir(self.output_dir)
 
         self.tempDir = Path(tempfile.mkdtemp())
 
@@ -55,16 +56,17 @@ class TestGen:
     def IncreaseTest(self):
         self.test_in_group += 1
 
-    def GetExtension(self, input):
+    def GetExtension(self, input, test_id = None):
+        test_id = test_id if test_id else (self.test_group, self.test_in_group)
         ioLetter = 'i' if input else 'o'
-        letter = chr(self.test_in_group + ord('a'))
-        return f".{ioLetter}{self.test_group:02}{letter}"
+        letter = chr(test_id[1] + ord('a'))
+        return f".{ioLetter}{test_id[0]:02}{letter}"
 
-    def GetInputFile(self):
-        return Path(self.outputDir, self.filename + self.GetExtension(True))
+    def GetInputFile(self, test_id = None):
+        return Path(self.output_dir, self.filename + self.GetExtension(True, test_id))
 
-    def GetOutputFile(self):
-        return Path(self.outputDir, self.filename + self.GetExtension(False))
+    def GetOutputFile(self, test_id = None):
+        return Path(self.output_dir, self.filename + self.GetExtension(False, test_id))
 
     def GenerateAnswer(self, input:Path, output:Path):
         print(f"Generating answer {output}")
@@ -129,4 +131,13 @@ class TestGen:
                 grp = self.group_list[test[0]]
                 print(f"{cnt:8}\t{test[0]:5} {test[1]:5} {grp[0]:8}\t{grp[1]}", file = f)
 
+    def GenerateTestZip(self, output:Path, include_output=True):
+        with zipfile.ZipFile(output, 'w') as zipf:
+            for test in self.test_list:
+                input_file = self.GetInputFile(test)
+                zipf.write(input_file, input_file.name)
+                if include_output:
+                    output_file = self.GetOutputFile(test)
+                    zipf.write(output_file, output_file.name)
+        print(f"Zipfile {output} generated{' without output files' if not include_output else ''}.")
 

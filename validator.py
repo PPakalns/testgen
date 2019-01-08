@@ -20,7 +20,7 @@ def extract_test_files(zip_archive: Path, folder: Path, dos2unix):
 
 
 def compile_validator(validator :Path):
-    subprocess.run(["g++", "-Wall", "-std=c++17", "-o", "validator", validator.absolute()])\
+    subprocess.run(["g++", "-Wall", "-std=c++17", "-o", "validator", str(validator.absolute())])\
         .check_returncode()
     print("Validator compiled")
 
