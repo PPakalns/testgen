@@ -101,7 +101,11 @@ def get_subtask_assignment(subtask_groups, group_points, points_per_subtask):
 
 def main(opts):
     compile_validator(Path(opts.validator))
-    extract_test_files(Path(opts.zip), Path(opts.test_dir), opts.dos2unix)
+    if opts.extract:
+        extract_test_files(Path(opts.zip), Path(opts.test_dir), opts.dos2unix)
+    else:
+        print("Zip extracting skipped.")
+
     group_points = parse_points(Path(opts.point_file))
     tests = get_input_files(Path(opts.test_dir))
     subtask_count = len(opts.points_per_subtask)
@@ -185,6 +189,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--dos2unix", action="store_true")
     parser.add_argument("--test_dir", default="testi")
+    parser.add_argument("--use_extracted", dest="extract", action="store_false", help="Use tests from folder, do not extract from zip.")
     parser.add_argument("zip")
     parser.add_argument("validator")
     parser.add_argument("point_file")
