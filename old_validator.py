@@ -32,14 +32,21 @@ def parse_points(point_file: Path):
     with point_file.open() as f:
         content = [x.strip() for x in f.readlines()]
     points_per_group = dict()
-    points_per_group[0] = 0
+    maxGroup = 0
     for line in content:
         vars = line.replace("-", " ").split()
         a = int(vars[0])
         b = int(vars[1])
         points = int(vars[2])
         for group in range(a, b+1):
+            assert(group not in points_per_group)
             points_per_group[group] = points
+        maxGroup = b
+    if 0 not in points_per_group:
+        points_per_group[0] = 0
+    for i in range(0, maxGroup + 1):
+        if i not in points_per_group:
+            raise Exception(f"Point file is not continious. Check group {i}")
     return points_per_group
 
 

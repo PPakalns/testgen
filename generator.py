@@ -45,11 +45,13 @@ class TestGen:
         assert(points == 100)
         shutil.rmtree(self.tempDir)
 
-    def NewGroup(self, points, comment = ""):
+    def NewGroup(self, points, comment = "", public = False):
         if comment is None:
             comment = self.group_list[-1][1] # Previous comment
         self.test_group += 1
         self.test_in_group = 0
+        if public:
+            comment += " --- PUBLISKA GRUPA"
         self.group_list.append((points, comment))
         print(f"\nGroup {self.test_group}\n")
 
