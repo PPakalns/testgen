@@ -63,14 +63,16 @@ class TestAssignment:
         if summary['unused_groups']:
             errors.append(f"Unused groups {summary['unused_groups']};")
         if summary['subtask_assigned_points'] != self.subtask_points:
-            errors.append(f"Incorrectly assigned points Expected: {self.subtask_points}," +
+            errors.append(f"Incorrectly assigned points Expected: {self.subtask_points}, " +
                           f"Got: {summary['subtask_assigned_points']};")
         if summary['total_points'] != 100:
             errors.append(f"Total points {summary['total_points']} != 100;")
+        if not all(summary['subtask_group_assignment']):
+            errors.append(f"Subtask without any assigned group;")
 
         if errors:
             errors.insert(0, "ASSIGNMENT FAIL:")
-            raise Exception(' '.join(errors))
+            raise Exception('\n'.join(errors))
 
     def print_summary(self):
         summary = self.get_summary()
