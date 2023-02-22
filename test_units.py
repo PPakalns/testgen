@@ -54,6 +54,8 @@ class Tests:
         self.groups = {gid: TestGroup(gid, points) for gid, points in read_points(point_file).items()}
         input_files = get_input_files(test_dir)
         for gid, tests in input_files.items():
+            if gid not in self.groups:
+                raise Exception(f"{gid} group missing from point file!")
             self.groups[gid].set_tests(tests)
 
     async def match_subtasks(self, validator: Path, subtask_list: Iterable[int]):
@@ -105,6 +107,8 @@ def read_points(point_file: Path) -> Dict[int, int]:
     points_per_group: Dict[int, int] = dict()
     maxGroup = 0
     for line in content:
+        if not line.strip():
+            continue
         vars = line.replace("-", " ").split()
         a = int(vars[0])
         b = int(vars[1])
@@ -132,9 +136,9 @@ async def extract_tests(test_zip: Path, target_dir: Path, dos2unix: bool):
     await utility.run(args)
 
     if dos2unix:
-        print("Applying dos2unix to all files in '{target_dir}'")
+        print(f"Applying dos2unix to all files in '{target_dir}'")
         for file in target_dir.iterdir():
             if file.is_dir():
-                raise Exception("Bad path {file}")
+                raise Exception(f"Bad path {file}")
             await utility.run(["dos2unix", str(file)])
 
