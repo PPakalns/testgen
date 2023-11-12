@@ -21,7 +21,7 @@ def main(opts: argparse.Namespace):
         config_path = Path(config)
 
         with config_path.open() as f:
-            config = yaml.load(f)
+            config = yaml.safe_load(f)
 
         # Contest configuration has "tasks" configuration
         if "tasks" in config:

@@ -5,7 +5,7 @@ import shlex
 import re
 
 from pathlib import Path
-from typing import Iterable, List, Dict, Set
+from typing import Iterable, List, Dict, Set, Optional, Any
 
 class Test:
     def __init__(self, tid: str, file: Path):
@@ -48,10 +48,15 @@ class TestGroup:
 
 
 class Tests:
-    def __init__(self, point_file: Path, test_dir: Path, public_groups: List[int]):
+    def __init__(self, point_config: Optional[List[Dict[str, Any]]], point_file: Path, test_dir: Path, public_groups: List[int]):
         assert(len(set(public_groups)) == len(public_groups))
-        self.public_groups = public_groups
-        self.groups = {gid: TestGroup(gid, points) for gid, points in read_points(point_file).items()}
+        if point_config is None:
+            self.public_groups = public_groups
+            self.groups = {gid: TestGroup(gid, points) for gid, points in read_points(point_file).items()}
+        else:
+            groups, public_groups = parse_points(point_config)
+            self.public_groups = public_groups
+            self.groups = {gid: TestGroup(gid, points) for gid, points in groups.items()}
         input_files = get_input_files(test_dir)
         for gid, tests in input_files.items():
             if gid not in self.groups:
@@ -123,6 +128,48 @@ def read_points(point_file: Path) -> Dict[int, int]:
         if i not in points_per_group:
             raise Exception(f"Point file is not continious. Check group {i}")
     return points_per_group
+
+
+def parse_points(points: List[Dict[str, Any]]):
+    points_per_group = dict()
+    public_groups = set()
+    for row in points:
+        groups = row["groups"]
+        if isinstance(groups, int):
+            groups = [groups]
+        elif isinstance(groups, list):
+            from_gr, to_gr = groups
+            if to_gr < from_gr:
+                raise ValueError("Bad group interval")
+            groups = list(range(from_gr, to_gr + 1))
+        else:
+            raise ValueError(f"Unparsabled groups {groups}")
+
+        if not isinstance(row["points"], int):
+            raise ValueError("Provided points are not points")
+
+        for group in groups:
+            if group in points_per_group:
+                raise Exception("Duplicated groups in point file")
+            points_per_group[group] = row["points"]
+
+        public = row.get("public", False)
+        if isinstance(public, bool):
+            if public:
+                public_groups.update(groups)
+        elif isinstance(public, list):
+            for group in public:
+                if group not in groups:
+                    raise ValueError(f"Provided group number {group} not in this test group block {groups}")
+                public_groups.add(group)
+
+    for group in range(len(points_per_group)):
+        if group not in points_per_group:
+            raise Exception("Missing group from point file")
+    if sum(points_per_group.values()) != 100:
+        raise Exception("Points for all groups doesn't sum up to 100")
+
+    return points_per_group, public_groups
 
 
 async def extract_tests(test_zip: Path, target_dir: Path, dos2unix: bool):

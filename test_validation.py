@@ -87,8 +87,9 @@ async def validate_task(task: Task, opts: argparse.Namespace) -> TaskValidationR
         test_dir = Path('testi_validator',  task.name)
         if opts.extract:
             await extract_tests(task.test_archive, test_dir, opts.dos2unix)
-        tests = Tests(task.point_file, test_dir, task.public_groups)
+        tests = Tests(point_config=task.point_config, point_file=task.point_file, test_dir=test_dir, public_groups=task.public_groups)
         validation_result.set_tests(tests)
+
 
         compiled_validator = Path('testi_validator', f'validator{task.name}')
 

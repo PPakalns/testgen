@@ -5,7 +5,7 @@ import utility
 
 from colorama import Fore, Back, Style
 from pathlib import Path
-from typing import Union, List, Optional
+from typing import Union, List, Optional, Dict, Any
 from test_assignment import TestAssignment
 
 class Unit:
@@ -14,13 +14,14 @@ class Unit:
 class Task(Unit):
     def __init__(self, name: str, title: str, public_groups: List[int],
                  test_archive: Path, validator: Path, point_file: Path,
-                 subtask_points: List[int]):
+                 point_config: Optional[List[Dict[str, Any]]], subtask_points: List[int]):
         self.name = name
         self.title = title
         self.public_groups = public_groups
         self.test_archive = test_archive
         self.validator = validator
         self.point_file = point_file
+        self.point_config = point_config
         self.subtask_points = subtask_points
 
     def print_summary(self):
@@ -56,7 +57,7 @@ class Contest(Unit):
 
 def load_contest(config_path: Path) -> Contest:
     with config_path.open() as f:
-        config = yaml.load(f)
+        config = yaml.safe_load(f)
     contest_dir = config_path.parent
 
     tasks = []
@@ -71,13 +72,14 @@ def load_contest(config_path: Path) -> Contest:
 
 def load_task(config_path: Path) -> Task:
     with config_path.open() as f:
-        config = yaml.load(f)
+        config = yaml.safe_load(f)
     task_dir = config_path.parent
 
     public_groups = config.get('public_groups', [0, 1])
-    test_archive = task_dir.joinpath(config.get('test_archive', 'testi.zip'))
+    test_archive = task_dir.joinpath(config.get('tests_archive', config.get('test_archive', 'testi.zip')))
     validator = task_dir.joinpath(config.get('validator', 'riki/validator.cpp'))
+    point_config = config.get("tests_groups")
     point_file = task_dir.joinpath(config.get('point_file', 'punkti.txt'))
     subtask_points = config.get('subtask_points', [0, 2])
     return Task(config['name'], config['title'], public_groups, test_archive,
-                validator, point_file, subtask_points)
+                validator, point_file, point_config, subtask_points)
