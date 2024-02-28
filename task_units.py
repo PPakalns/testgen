@@ -8,6 +8,22 @@ from pathlib import Path
 from typing import Union, List, Optional, Dict, Any
 from test_assignment import TestAssignment
 
+def load_yaml_with_base(config_path: Path) -> Any:
+    with config_path.open() as f:
+        config = yaml.safe_load(f)
+
+    last_path = config_path
+    while True:
+        if "base" not in config:
+            break
+        base_path = Path(config.pop("base"))
+        last_path = last_path.parent.joinpath(base_path)
+        with last_path.open() as f:
+            base_config = yaml.safe_load(f)
+            base_config.update(config)
+            config = base_config
+    return config
+
 class Unit:
     pass
 
@@ -71,8 +87,7 @@ def load_contest(config_path: Path) -> Contest:
 
 
 def load_task(config_path: Path) -> Task:
-    with config_path.open() as f:
-        config = yaml.safe_load(f)
+    config = load_yaml_with_base(config_path)
     task_dir = config_path.parent
 
     public_groups = config.get('public_groups', [0, 1])
