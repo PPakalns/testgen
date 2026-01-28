@@ -9,12 +9,13 @@ from test_assignment import TestAssignment
 from typing import Optional, List, Union, cast
 from test_units import extract_tests, Tests
 
+
 class ValidationResult:
     def print_summary(self):
         raise NotImplementedError
 
-class TaskValidationResult(ValidationResult):
 
+class TaskValidationResult(ValidationResult):
     def __init__(self, task: Task):
         self.state = "unresolved"
         self.task: Task = task
@@ -40,7 +41,6 @@ class TaskValidationResult(ValidationResult):
         self.exception = exception
 
     def print_summary(self):
-
         if self.task:
             self.task.print_summary()
 
@@ -67,12 +67,13 @@ class TaskValidationResult(ValidationResult):
 
 
 class ContestValidationResult(ValidationResult):
-    def __init__(self, contest: Contest, task_validation_results: List[TaskValidationResult]):
+    def __init__(
+        self, contest: Contest, task_validation_results: List[TaskValidationResult]
+    ):
         self.contest = contest
         self.task_validation_results = task_validation_results
 
     def print_summary(self):
-
         print("\n")
         self.contest.print_summary()
 
@@ -84,19 +85,24 @@ async def validate_task(task: Task, opts: argparse.Namespace) -> TaskValidationR
     validation_result = TaskValidationResult(task)
 
     try:
-        test_dir = Path('testi_validator',  task.name)
+        test_dir = Path("testi_validator", task.name)
         if opts.extract:
             await extract_tests(task.test_archive, test_dir, opts.dos2unix)
-        tests = Tests(point_config=task.point_config, point_file=task.point_file, test_dir=test_dir, public_groups=task.public_groups)
+        tests = Tests(
+            point_config=task.point_config,
+            point_file=task.point_file,
+            test_dir=test_dir,
+            public_groups=task.public_groups,
+        )
         validation_result.set_tests(tests)
 
-
-        compiled_validator = Path('testi_validator', f'validator{task.name}')
+        compiled_validator = Path("testi_validator", f"validator{task.name}")
 
         await utility.compile_validator(task.validator, compiled_validator)
 
-        await tests.match_subtasks(compiled_validator,
-                                   range(0, len(task.subtask_points)))
+        await tests.match_subtasks(
+            compiled_validator, range(0, len(task.subtask_points))
+        )
 
         assignment = TestAssignment(task.subtask_points, tests)
 
@@ -111,12 +117,15 @@ async def validate_task(task: Task, opts: argparse.Namespace) -> TaskValidationR
     return validation_result
 
 
-async def validate(obj: Union[Task, Contest], opts: argparse.Namespace) -> ValidationResult:
+async def validate(
+    obj: Union[Task, Contest], opts: argparse.Namespace
+) -> ValidationResult:
     if type(obj) is Contest:
         contest = cast(Contest, obj)
-        task_validation_results = list(await asyncio.gather(*(validate_task(task, opts) for task in contest.tasks)))
+        task_validation_results = list(
+            await asyncio.gather(*(validate_task(task, opts) for task in contest.tasks))
+        )
         return ContestValidationResult(contest, task_validation_results)
     else:
         task = cast(Task, obj)
         return await validate_task(task, opts)
-

@@ -10,12 +10,12 @@ from typing import List
 from test_validation import validate
 from task_units import Unit, Contest, Task, load_contest, load_task
 
+
 async def multiple_tasks(tasks):
     return await asyncio.gather(*tasks, return_exceptions=True)
 
 
 def main(opts: argparse.Namespace):
-
     evaluate = []
     for config in opts.config:
         config_path = Path(config)
@@ -41,10 +41,18 @@ def main(opts: argparse.Namespace):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--dos2unix", action="store_true")
-    parser.add_argument("--use-extracted", dest="extract", action="store_false", help="Use tests from folder, do not extract from zip.")
-    parser.add_argument(nargs="+", dest="config", type=str, help="Yaml file which defining contest or task")
+    parser.add_argument(
+        "--use-extracted",
+        dest="extract",
+        action="store_false",
+        help="Use tests from folder, do not extract from zip.",
+    )
+    parser.add_argument(
+        nargs="+",
+        dest="config",
+        type=str,
+        help="Yaml file which defining contest or task",
+    )
     opts = parser.parse_args()
     init()
     main(opts)
-
-
