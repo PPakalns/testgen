@@ -1,3 +1,4 @@
+pub mod dos2unix;
 pub mod generator;
 pub mod task_units;
 pub mod validator;

@@ -1,3 +1,4 @@
+use crate::dos2unix;
 use crate::task_units::{Contest, GlobalConfig, Task};
 use anyhow::Result;
 use futures::future::join_all;
@@ -5,6 +6,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::process::Command;
+use tokio::task::JoinHandle;
 use walkdir::WalkDir;
 
 pub async fn compile_validator(validator: &Path, output: &Path) -> anyhow::Result<()> {
@@ -52,7 +54,8 @@ pub async fn extract_tests(
             target_dir.display()
         );
 
-        let mut to_complete = vec![];
+        let mut to_complete: Vec<JoinHandle<anyhow::Result<()>>> = vec![];
+
         for entry in WalkDir::new(target_dir)
             .max_depth(1)
             .into_iter()
@@ -60,15 +63,11 @@ pub async fn extract_tests(
             .filter(|e| e.path().is_file())
         {
             let permit = gctx.plimit.clone().acquire_owned().await?;
-
-            let mut s = Command::new("dos2unix");
-            s.arg(entry.path());
+            let path = entry.path().to_path_buf();
 
             to_complete.push(tokio::spawn(async move {
-                let s = s.status().await?;
-                if !s.success() {
-                    anyhow::bail!("dos2unix failed: {}", s);
-                }
+                // dos2unix::dos2unix_command(path);
+                dos2unix::dos2unix_async(path).await?;
                 drop(permit);
                 Ok(())
             }));
@@ -194,7 +193,9 @@ pub async fn validate_task(task: &Task, gctx: Arc<GlobalConfig>) -> TaskValidati
             &test_dir,
             task.public_groups.clone(),
         );
+
         let compile = compile_validator(&task.validator, &compiled_validator);
+
         let extract = async {
             if !gctx.extract {
                 return Ok(());
@@ -593,7 +594,7 @@ impl TestAssignment {
                 if group.subtask_matches.contains(&subtask_id) {
                     if group.gid < group_count {
                         if self.tests.public_groups.contains(&group.gid) {
-                            gr_cells[group.gid] = "░".cyan().to_string();
+                            gr_cells[group.gid] = "░".bright_cyan().to_string();
                         } else {
                             gr_cells[group.gid] = "░".yellow().to_string();
                         }
